@@ -1,10 +1,5 @@
-# An example of how to convert a given API workflow into its own Replicate model
-# Replace predict.py with this file when building your own workflow
-
-import os
 import mimetypes
 import json
-from PIL import Image, ExifTags
 from typing import List
 from cog import BasePredictor, Input, Path
 from comfyui import ComfyUI
@@ -24,60 +19,42 @@ api_json_file = "workflow_api.json"
 
 
 class Predictor(BasePredictor):
-    def setup(self):
+    def setup(self, weights: str):
+        # Weights is a tar containing the workflow
+        if not weights:
+            raise ValueError(
+                "Workflow must be provided. "
+                "Set COG_WEIGHTS environment variable to "
+                "a URL to a tarball containing the workflow file "
+                "or a path to the workflow file."
+            )
+
         self.safetyChecker = SafetyChecker()
         self.comfyUI = ComfyUI("127.0.0.1:8188")
         self.comfyUI.start_server(OUTPUT_DIR, INPUT_DIR)
 
+        # Overwrite workflow JSON with downloaded workflow
+        self.comfyUI.weights_downloader.download(api_json_file, weights, api_json_file)
+
         # Give a list of weights filenames to download during setup
         with open(api_json_file, "r") as file:
             workflow = json.loads(file.read())
-        self.comfyUI.handle_weights(
-            workflow,
-            weights_to_download=[],
-        )
+        self.comfyUI.handle_weights(workflow)
 
-    def handle_input_file(
-        self,
-        input_file: Path,
-        filename: str = "image.png",
-        check_orientation: bool = True,
-    ):
-        image = Image.open(input_file)
-
-        if check_orientation:
-            try:
-                for orientation in ExifTags.TAGS.keys():
-                    if ExifTags.TAGS[orientation] == "Orientation":
-                        break
-                exif = dict(image._getexif().items())
-
-                if exif[orientation] == 3:
-                    image = image.rotate(180, expand=True)
-                elif exif[orientation] == 6:
-                    image = image.rotate(270, expand=True)
-                elif exif[orientation] == 8:
-                    image = image.rotate(90, expand=True)
-            except (KeyError, AttributeError):
-                # EXIF data does not have orientation
-                # Do not rotate
-                pass
-
-        image.save(os.path.join(INPUT_DIR, filename))
-
-    # Update nodes in the JSON workflow to modify your workflow based on the given inputs
     def update_workflow(self, workflow, **kwargs):
-        # Below is an example showing how to get the node you need and update the inputs
+        positive_prompt = workflow["6"]["inputs"]
+        positive_prompt["text"] = kwargs["prompt"]
 
-        # positive_prompt = workflow["6"]["inputs"]
-        # positive_prompt["text"] = kwargs["prompt"]
+        negative_prompt = workflow["7"]["inputs"]
+        negative_prompt["text"] = f"nsfw, {kwargs['negative_prompt']}"
 
-        # negative_prompt = workflow["7"]["inputs"]
-        # negative_prompt["text"] = f"nsfw, {kwargs['negative_prompt']}"
+        sampler = workflow["3"]["inputs"]
+        sampler["seed"] = kwargs["seed"]
 
-        # sampler = workflow["3"]["inputs"]
-        # sampler["seed"] = kwargs["seed"]
-        pass
+        empty_latent_image = workflow["5"]["inputs"]
+        empty_latent_image["width"] = kwargs["width"]
+        empty_latent_image["height"] = kwargs["height"]
+        empty_latent_image["batch"] = kwargs["number_of_images"]
 
     def predict(
         self,
@@ -102,8 +79,6 @@ class Predictor(BasePredictor):
     ) -> List[Path]:
         """Run a single prediction on the model"""
         self.comfyUI.cleanup(ALL_DIRECTORIES)
-
-        # Make sure to set the seeds in your workflow
         seed = seed_helper.generate(seed)
 
         with open(api_json_file, "r") as file:
@@ -114,6 +89,9 @@ class Predictor(BasePredictor):
             prompt=prompt,
             negative_prompt=negative_prompt,
             seed=seed,
+            width=width,
+            height=height,
+            number_of_images=number_of_images,
         )
 
         wf = self.comfyUI.load_workflow(workflow)
