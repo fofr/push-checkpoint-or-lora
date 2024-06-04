@@ -24,8 +24,8 @@ class Predictor(BasePredictor):
     def setup(self, weights: str):
         # Weights is a tar containing the workflow
         if not weights:
-            raise ValueError(
-                "Workflow must be provided. "
+            print(
+                "Warning: Workflow must be provided. "
                 "Set COG_WEIGHTS environment variable to "
                 "a URL to a tarball containing the workflow file."
             )
@@ -55,7 +55,7 @@ class Predictor(BasePredictor):
         empty_latent_image = workflow["5"]["inputs"]
         empty_latent_image["width"] = kwargs["width"]
         empty_latent_image["height"] = kwargs["height"]
-        empty_latent_image["batch"] = kwargs["number_of_images"]
+        empty_latent_image["batch_size"] = kwargs["number_of_images"]
 
     def predict(
         self,
