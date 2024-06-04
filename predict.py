@@ -10,6 +10,7 @@ from cog import BasePredictor, Input, Path
 from comfyui import ComfyUI
 from cog_model_helpers import optimise_images
 from cog_model_helpers import seed as seed_helper
+from safety_checker import SafetyChecker
 
 OUTPUT_DIR = "/tmp/outputs"
 INPUT_DIR = "/tmp/inputs"
@@ -24,6 +25,7 @@ api_json_file = "workflow_api.json"
 
 class Predictor(BasePredictor):
     def setup(self):
+        self.safetyChecker = SafetyChecker()
         self.comfyUI = ComfyUI("127.0.0.1:8188")
         self.comfyUI.start_server(OUTPUT_DIR, INPUT_DIR)
 
@@ -86,22 +88,23 @@ class Predictor(BasePredictor):
             description="Things you do not want to see in your image",
             default="",
         ),
-        image: Path = Input(
-            description="An input image",
-            default=None,
+        number_of_images: int = Input(
+            description="Number of images to generate", ge=1, le=10, default=1
         ),
+        width: int = Input(default=1024),
+        height: int = Input(default=1024),
         output_format: str = optimise_images.predict_output_format(),
         output_quality: int = optimise_images.predict_output_quality(),
         seed: int = seed_helper.predict_seed(),
+        disable_safety_checker: bool = Input(
+            description="Disable safety checker for generated images.", default=False
+        ),
     ) -> List[Path]:
         """Run a single prediction on the model"""
         self.comfyUI.cleanup(ALL_DIRECTORIES)
 
         # Make sure to set the seeds in your workflow
         seed = seed_helper.generate(seed)
-
-        if image:
-            self.handle_input_file(image)
 
         with open(api_json_file, "r") as file:
             workflow = json.loads(file.read())
@@ -117,6 +120,14 @@ class Predictor(BasePredictor):
         self.comfyUI.connect()
         self.comfyUI.run_workflow(wf)
 
+        files = self.comfyUI.get_files(OUTPUT_DIR)
+
+        if not disable_safety_checker:
+            has_nsfw_content = self.safetyChecker.run(files)
+            if any(has_nsfw_content):
+                print("Removing NSFW images")
+                files = [f for i, f in enumerate(files) if not has_nsfw_content[i]]
+
         return optimise_images.optimise_image_files(
-            output_format, output_quality, self.comfyUI.get_files(OUTPUT_DIR)
+            output_format, output_quality, files
         )
