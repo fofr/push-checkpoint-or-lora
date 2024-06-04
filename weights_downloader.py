@@ -48,8 +48,6 @@ class WeightsDownloader:
             self.download(weight_str, url, dest)
 
     def download(self, weight_str, url, dest):
-        is_archive = weight_str.endswith(".tar")
-
         if "/" in weight_str:
             subfolder = weight_str.rsplit("/", 1)[0]
             dest = os.path.join(dest, subfolder)
@@ -58,7 +56,7 @@ class WeightsDownloader:
         print(f"⏳ Downloading {weight_str} to {dest}")
         start = time.time()
         subprocess.check_call(
-            ["pget", "--log-level", "warn", "-xf" if is_archive else "-f", url, dest],
+            ["pget", "--log-level", "warn", "-xf", url, dest],
             close_fds=False,
         )
         elapsed_time = time.time() - start
