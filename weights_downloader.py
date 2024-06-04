@@ -22,8 +22,15 @@ class WeightsDownloader:
     def get_weights_by_type(self, type):
         return self.weights_manifest.get_weights_by_type(type)
 
+    def check_weight_is_available(self, weight_str):
+        if weight_str not in self.weights_map:
+            raise ValueError(
+                f"{weight_str} unavailable. View the list of available weights: https://github.com/fofr/cog-comfyui/blob/main/supported_weights.md"
+            )
+        return True
+
     def download_weights(self, weight_str):
-        if weight_str in self.weights_map:
+        if self.check_weight_is_available(weight_str):
             if self.weights_manifest.is_non_commercial_only(weight_str):
                 print(
                     f"⚠️  {weight_str} is for non-commercial use only. Unless you have obtained a commercial license.\nDetails: https://github.com/fofr/cog-comfyui/blob/main/weights_licenses.md"
@@ -32,10 +39,6 @@ class WeightsDownloader:
                 weight_str,
                 self.weights_map[weight_str]["url"],
                 self.weights_map[weight_str]["dest"],
-            )
-        else:
-            raise ValueError(
-                f"{weight_str} unavailable. View the list of available weights: https://github.com/fofr/cog-comfyui/blob/main/supported_weights.md"
             )
 
     def download_if_not_exists(self, weight_str, url, dest):
