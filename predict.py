@@ -1,5 +1,6 @@
 import mimetypes
 import json
+import os
 from typing import List
 from cog import BasePredictor, Input, Path
 from comfyui import ComfyUI
@@ -16,6 +17,7 @@ mimetypes.add_type("image/webp", ".webp")
 
 # Save your example JSON to the same directory as predict.py
 api_json_file = "workflow_api.json"
+os.environ["DOWNLOAD_LATEST_WEIGHTS_MANIFEST"] = "true"
 
 
 class Predictor(BasePredictor):
@@ -25,16 +27,15 @@ class Predictor(BasePredictor):
             raise ValueError(
                 "Workflow must be provided. "
                 "Set COG_WEIGHTS environment variable to "
-                "a URL to a tarball containing the workflow file "
-                "or a path to the workflow file."
+                "a URL to a tarball containing the workflow file."
             )
 
-        self.safetyChecker = SafetyChecker()
         self.comfyUI = ComfyUI("127.0.0.1:8188")
-        self.comfyUI.start_server(OUTPUT_DIR, INPUT_DIR)
 
         # Overwrite workflow JSON with downloaded workflow
-        self.comfyUI.weights_downloader.download(api_json_file, weights, api_json_file)
+        self.comfyUI.weights_downloader.download(f"{api_json_file}.tar", weights, "")
+        self.comfyUI.start_server(OUTPUT_DIR, INPUT_DIR)
+        self.safetyChecker = SafetyChecker()
 
         # Give a list of weights filenames to download during setup
         with open(api_json_file, "r") as file:
@@ -79,6 +80,8 @@ class Predictor(BasePredictor):
     ) -> List[Path]:
         """Run a single prediction on the model"""
         self.comfyUI.cleanup(ALL_DIRECTORIES)
+
+        using_fixed_seed = bool(seed)
         seed = seed_helper.generate(seed)
 
         with open(api_json_file, "r") as file:
@@ -94,9 +97,15 @@ class Predictor(BasePredictor):
             number_of_images=number_of_images,
         )
 
-        wf = self.comfyUI.load_workflow(workflow)
         self.comfyUI.connect()
-        self.comfyUI.run_workflow(wf)
+
+        try:
+            if using_fixed_seed:
+                self.comfyUI.reset_execution_cache()
+        except Exception as e:
+            print(f"Failed to reset execution cache: {e}")
+
+        self.comfyUI.run_workflow(workflow)
 
         files = self.comfyUI.get_files(OUTPUT_DIR)
 
