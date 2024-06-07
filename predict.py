@@ -35,15 +35,15 @@ class Predictor(BasePredictor):
         self.comfyUI.weights_downloader.download("weights.tar", weights, "")
 
         if os.path.exists("checkpoint.safetensors"):
+            os.makedirs("ComfyUI/models/checkpoints", exist_ok=True)
             shutil.move(
                 "checkpoint.safetensors",
                 "ComfyUI/models/checkpoints/checkpoint.safetensors",
             )
 
         if os.path.exists("lora.safetensors"):
-            shutil.move(
-                "lora.safetensors", "ComfyUI/models/loras/lora.safetensors"
-            )
+            os.makedirs("ComfyUI/models/loras", exist_ok=True)
+            shutil.move("lora.safetensors", "ComfyUI/models/loras/lora.safetensors")
 
         self.comfyUI.start_server(OUTPUT_DIR, INPUT_DIR)
         self.safetyChecker = SafetyChecker()
