@@ -15,6 +15,11 @@ class WeightsDownloader:
         ".torchscript",
     ]
 
+    whitelist = [
+        "checkpoint.safetensors",
+        "lora.safetensors",
+    ]
+
     def __init__(self):
         self.weights_manifest = WeightsManifest()
         self.weights_map = self.weights_manifest.weights_map
@@ -30,6 +35,9 @@ class WeightsDownloader:
         return True
 
     def download_weights(self, weight_str):
+        if weight_str in self.whitelist:
+            return
+
         if self.check_weight_is_available(weight_str):
             if self.weights_manifest.is_non_commercial_only(weight_str):
                 print(

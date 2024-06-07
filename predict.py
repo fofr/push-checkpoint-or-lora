@@ -1,6 +1,7 @@
 import mimetypes
 import json
 import os
+import shutil
 from typing import List
 from cog import BasePredictor, Input, Path
 from comfyui import ComfyUI
@@ -31,9 +32,19 @@ class Predictor(BasePredictor):
             )
 
         self.comfyUI = ComfyUI("127.0.0.1:8188")
+        self.comfyUI.weights_downloader.download("weights.tar", weights, "")
 
-        # Overwrite workflow JSON with downloaded workflow
-        self.comfyUI.weights_downloader.download(f"{api_json_file}.tar", weights, "")
+        if os.path.exists("checkpoint.safetensors"):
+            shutil.move(
+                "checkpoint.safetensors",
+                "ComfyUI/models/checkpoints/checkpoint.safetensors",
+            )
+
+        if os.path.exists("lora.safetensors"):
+            shutil.move(
+                "lora.safetensors", "ComfyUI/models/loras/lora.safetensors"
+            )
+
         self.comfyUI.start_server(OUTPUT_DIR, INPUT_DIR)
         self.safetyChecker = SafetyChecker()
 
