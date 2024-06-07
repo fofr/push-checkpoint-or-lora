@@ -49,8 +49,10 @@ class TrainingOutput(BaseModel):
 
 def train(
     checkpoint_filename: str = Input(
-        description="The filename of the checkpoint to use. "
-        "This can be a URL to a tarball containing the weights or a path to the weights file.",
+        description="The filename of the checkpoint to use"
+    ),
+    lora_filename: str = Input(
+        description="The filename of the LoRA to use",
     ),
     steps: int = Input(
         description="The number of steps to use during inference",
@@ -95,6 +97,9 @@ def train(
 
     checkpoint_loader = workflow["4"]["inputs"]
     checkpoint_loader["ckpt_name"] = checkpoint_filename
+
+    lora_loader = workflow["10"]["inputs"]
+    lora_loader["lora_name"] = lora_filename
 
     # Create a tar file for the new workflow data
     with tarfile.open("workflow.tar", "w") as tar:

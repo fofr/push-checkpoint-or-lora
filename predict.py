@@ -57,6 +57,9 @@ class Predictor(BasePredictor):
         empty_latent_image["height"] = kwargs["height"]
         empty_latent_image["batch_size"] = kwargs["number_of_images"]
 
+        lora_loader = workflow["10"]["inputs"]
+        lora_loader["strength_model"] = kwargs["lora_strength"]
+
     def predict(
         self,
         prompt: str = Input(
@@ -71,6 +74,7 @@ class Predictor(BasePredictor):
         ),
         width: int = Input(default=1024),
         height: int = Input(default=1024),
+        lora_strength: float = Input(default=1.0, ge=0, le=3.0),
         output_format: str = optimise_images.predict_output_format(),
         output_quality: int = optimise_images.predict_output_quality(),
         seed: int = seed_helper.predict_seed(),
@@ -95,6 +99,7 @@ class Predictor(BasePredictor):
             width=width,
             height=height,
             number_of_images=number_of_images,
+            lora_strength=lora_strength,
         )
 
         self.comfyUI.connect()
