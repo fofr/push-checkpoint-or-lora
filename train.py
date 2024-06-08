@@ -34,6 +34,7 @@ def train(
     ),
     lora: str = Input(
         description="Optional: A lora filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Optional.",
+        default=None,
     ),
     steps: int = Input(
         description="Set the default number of steps to use during inference",
