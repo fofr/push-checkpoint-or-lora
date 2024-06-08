@@ -2,45 +2,26 @@ import tarfile
 import json
 import io
 import os
+import subprocess
 from weights_downloader import WeightsDownloader
 from cog import BaseModel, Input, Path
+from comfyui_enums import SAMPLERS, SCHEDULERS
 
 os.environ["DOWNLOAD_LATEST_WEIGHTS_MANIFEST"] = "true"
 api_json_file = "workflow_api.json"
 
-SAMPLERS = [
-    "euler",
-    "euler_ancestral",
-    "heun",
-    "heunpp2",
-    "dpm_2",
-    "dpm_2_ancestral",
-    "lms",
-    "dpm_fast",
-    "dpm_adaptive",
-    "dpmpp_2s_ancestral",
-    "dpmpp_sde",
-    "dpmpp_sde_gpu",
-    "dpmpp_2m",
-    "dpmpp_2m_sde",
-    "dpmpp_2m_sde_gpu",
-    "dpmpp_3m_sde",
-    "dpmpp_3m_sde_gpu",
-    "ddpm",
-    "lcm",
-    "ddim",
-    "uni_pc",
-    "uni_pc_bh2",
-]
 
-SCHEDULERS = [
-    "normal",
-    "karras",
-    "exponential",
-    "sgm_uniform",
-    "simple",
-    "ddim_uniform",
-]
+def download_file(url: str, filename: str = "checkpoint.safetensors"):
+    if not (
+        url.startswith("https://huggingface.co")
+        or url.startswith("https://civitai.com")
+    ):
+        raise ValueError("URL must be from 'huggingface.co' or 'civitai.com'")
+
+    print(f"Downloading {url} to {filename}")
+    subprocess.run(["pget", "--log-level", "warn", "-f", url, filename])
+    print(f"Successfully downloaded {filename}")
+    return filename
 
 
 class TrainingOutput(BaseModel):
@@ -48,28 +29,32 @@ class TrainingOutput(BaseModel):
 
 
 def train(
-    checkpoint_filename: str = Input(
-        description="The filename of the checkpoint to use. "
-        "This can be a URL to a tarball containing the weights or a path to the weights file.",
+    checkpoint: str = Input(
+        description="A checkpoint filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Required."
+    ),
+    lora: str = Input(
+        description="Optional: A lora filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Optional.",
     ),
     steps: int = Input(
-        description="The number of steps to use during inference",
+        description="Set the default number of steps to use during inference",
         default=20,
         le=100,
         ge=1,
     ),
     cfg: float = Input(
-        description="The CFG scale to use during inference",
+        description="Set the default CFG scale to use during inference",
         default=7.0,
         le=20.0,
         ge=0.0,
     ),
     sampler: str = Input(
-        description="The sampler to use during inference",
+        description="Set the default sampler to use during inference. Choices are: "
+        + ", ".join(SAMPLERS),
         default="dpmpp_2m_sde_gpu",
     ),
     scheduler: str = Input(
-        description="The scheduler to use during inference",
+        description="Set the default scheduler to use during inference. Choices are: "
+        + ", ".join(SCHEDULERS),
         default="karras",
     ),
 ) -> TrainingOutput:
@@ -85,7 +70,6 @@ def train(
         )
 
     weights_download = WeightsDownloader()
-    weights_download.check_weight_is_available(checkpoint_filename)
 
     sampler_node = workflow["3"]["inputs"]
     sampler_node["sampler_name"] = sampler
@@ -93,14 +77,53 @@ def train(
     sampler_node["cfg"] = cfg
     sampler_node["scheduler"] = scheduler
 
-    checkpoint_loader = workflow["4"]["inputs"]
-    checkpoint_loader["ckpt_name"] = checkpoint_filename
+    if checkpoint:
+        if checkpoint.startswith("https://"):
+            checkpoint = download_file(
+                checkpoint, "checkpoint.safetensors"
+            )
+            checkpoint = "checkpoint.safetensors"
+        else:
+            weights_download.check_weight_is_available(checkpoint)
+
+        checkpoint_loader = workflow["4"]["inputs"]
+        checkpoint_loader["ckpt_name"] = checkpoint
+
+    if lora:
+        if lora.startswith("https://"):
+            lora = download_file(lora, "lora.safetensors")
+            lora = "lora.safetensors"
+        else:
+            weights_download.check_weight_is_available(lora)
+
+        lora_loader = workflow["10"]["inputs"]
+        lora_loader["lora_name"] = lora
+    else:
+        # Remove lora loading from workflow
+        del workflow["10"]
+
+        # Connect sampler to checkpoint loader
+        sampler_node["model"] = ["4", 0]
+
+        # Get CLIP from checkpoint loader
+        workflow["6"]["inputs"]["clip"] = ["4", 1]
+        workflow["7"]["inputs"]["clip"] = ["4", 1]
 
     # Create a tar file for the new workflow data
-    with tarfile.open("workflow.tar", "w") as tar:
+    with tarfile.open("weights-and-workflow.tar", "w") as tar:
         tarinfo = tarfile.TarInfo(name="workflow_api.json")
         workflow_data = json.dumps(workflow, indent=2).encode("utf-8")
         tarinfo.size = len(workflow_data)
         tar.addfile(tarinfo, io.BytesIO(workflow_data))
 
-    return TrainingOutput(weights=Path("workflow.tar"))
+        # Check if checkpoint or lora files are safetensors and add them to the tar if they exist
+        for filename in [checkpoint, lora, "updated_weights.json"]:
+            if filename and os.path.exists(filename):
+                tar.add(filename)
+
+    # Remove any checkpoint or lora files
+    for filename in ["checkpoint.safetensors", "lora.safetensors"]:
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    return TrainingOutput(weights=Path("weights-and-workflow.tar"))
