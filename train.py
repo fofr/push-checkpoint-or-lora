@@ -140,7 +140,7 @@ def train(
         tar.addfile(tarinfo, io.BytesIO(workflow_data))
 
         # Check if checkpoint or lora files are safetensors and add them to the tar if they exist
-        for filename in [checkpoint_filename, lora_filename]:
+        for filename in [checkpoint_filename, lora_filename, "updated_weights.json"]:
             if filename and os.path.exists(filename):
                 tar.add(filename)
 
