@@ -29,10 +29,10 @@ class TrainingOutput(BaseModel):
 
 
 def train(
-    checkpoint_filename: str = Input(
+    checkpoint: str = Input(
         description="A checkpoint filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Required."
     ),
-    lora_filename: str = Input(
+    lora: str = Input(
         description="Optional: A lora filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Optional.",
     ),
     steps: int = Input(
@@ -77,27 +77,27 @@ def train(
     sampler_node["cfg"] = cfg
     sampler_node["scheduler"] = scheduler
 
-    if checkpoint_filename:
-        if checkpoint_filename.startswith("https://"):
-            checkpoint_filename = download_file(
-                checkpoint_filename, "checkpoint.safetensors"
+    if checkpoint:
+        if checkpoint.startswith("https://"):
+            checkpoint = download_file(
+                checkpoint, "checkpoint.safetensors"
             )
-            checkpoint_filename = "checkpoint.safetensors"
+            checkpoint = "checkpoint.safetensors"
         else:
-            weights_download.check_weight_is_available(checkpoint_filename)
+            weights_download.check_weight_is_available(checkpoint)
 
         checkpoint_loader = workflow["4"]["inputs"]
-        checkpoint_loader["ckpt_name"] = checkpoint_filename
+        checkpoint_loader["ckpt_name"] = checkpoint
 
-    if lora_filename:
-        if lora_filename.startswith("https://"):
-            lora_filename = download_file(lora_filename, "lora.safetensors")
-            lora_filename = "lora.safetensors"
+    if lora:
+        if lora.startswith("https://"):
+            lora = download_file(lora, "lora.safetensors")
+            lora = "lora.safetensors"
         else:
-            weights_download.check_weight_is_available(lora_filename)
+            weights_download.check_weight_is_available(lora)
 
         lora_loader = workflow["10"]["inputs"]
-        lora_loader["lora_name"] = lora_filename
+        lora_loader["lora_name"] = lora
     else:
         # Remove lora loading from workflow
         del workflow["10"]
@@ -117,7 +117,7 @@ def train(
         tar.addfile(tarinfo, io.BytesIO(workflow_data))
 
         # Check if checkpoint or lora files are safetensors and add them to the tar if they exist
-        for filename in [checkpoint_filename, lora_filename, "updated_weights.json"]:
+        for filename in [checkpoint, lora, "updated_weights.json"]:
             if filename and os.path.exists(filename):
                 tar.add(filename)
 
