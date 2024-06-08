@@ -140,7 +140,7 @@ class Predictor(BasePredictor):
         cfg: float = Input(
             default=None,
             ge=0,
-            le=3,
+            le=20,
             description="Advanced. Leave empty to use recommended CFG (classifier free guidance). This changes how much the prompt influences the output. Set it only if you want to customise.",
         ),
     ) -> List[Path]:
