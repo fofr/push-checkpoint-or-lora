@@ -25,6 +25,8 @@ api_json_file = "workflow_api.json"
 
 class Predictor(BasePredictor):
     def setup(self, weights: str):
+        self.comfyUI = ComfyUI("127.0.0.1:8188")
+
         # Weights is a tar containing the workflow
         if not weights:
             print(
@@ -32,9 +34,8 @@ class Predictor(BasePredictor):
                 "Set COG_WEIGHTS environment variable to "
                 "a URL to a tarball containing the workflow file."
             )
-
-        self.comfyUI = ComfyUI("127.0.0.1:8188")
-        self.comfyUI.weights_downloader.download("weights.tar", weights, "")
+        else:
+            self.comfyUI.weights_downloader.download("weights.tar", weights, "")
 
         if os.path.exists("checkpoint.safetensors"):
             os.makedirs("ComfyUI/models/checkpoints", exist_ok=True)
