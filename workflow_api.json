@@ -106,7 +106,7 @@
   },
   "10": {
     "inputs": {
-      "lora_name": "lora_name.safetensors",
+      "lora_name": "lora.safetensors",
       "strength_model": 1,
       "strength_clip": 1,
       "model": [
