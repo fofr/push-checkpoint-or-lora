@@ -182,7 +182,7 @@
   },
   "17": {
     "inputs": {
-      "preprocessor": "Zoe-DepthMapPreprocessor",
+      "preprocessor": "",
       "resolution": 1024,
       "image": [
         "18",
@@ -206,7 +206,7 @@
   },
   "19": {
     "inputs": {
-      "control_net_name": "controlnet.safetensors"
+      "control_net_name": ""
     },
     "class_type": "ControlNetLoader",
     "_meta": {
