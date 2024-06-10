@@ -159,27 +159,27 @@ class Predictor(BasePredictor):
 
         print("==============================")
         print("Generation settings")
-        print("Sampler:", sampler["sampler_name"])
-        print("Scheduler:", sampler["scheduler"])
-        print("Steps:", sampler["steps"])
-        print("CFG:", sampler["cfg"])
+        print(f"Sampler: {sampler['sampler_name']}")
+        print(f"Scheduler: {sampler['scheduler']}")
+        print(f"Steps: {sampler['steps']}")
+        print(f"CFG: {sampler['cfg']}")
         if "10" in workflow:
-            print("LORA: Using a lora. Lora strength:", lora_loader["strength_model"])
+            print(f"LORA: Using a lora. Lora strength: {lora_loader['strength_model']}")
         else:
             print("LORA: No lora. Lora strength has no effect")
 
         if is_controlnet:
             print("Using controlnet")
-            print("Controlnet: Model: ", controlnet["control_net_name"])
-            print("Controlnet: Preprocessor: ", preprocessor["preprocessor"])
-            print("Controlnet: Strength: ", apply_controlnet["strength"])
-            print("Controlnet: Start: ", apply_controlnet["start_percent"])
-            print("Controlnet: End: ", apply_controlnet["end_percent"])
+            print(f"Controlnet: Model: {controlnet['control_net_name']}")
+            print(f"Controlnet: Preprocessor: {preprocessor['preprocessor']}")
+            print(f"Controlnet: Strength: {apply_controlnet['strength']}")
+            print(f"Controlnet: Start: {apply_controlnet['start_percent']}")
+            print(f"Controlnet: End: {apply_controlnet['end_percent']}")
         if is_img2img:
             print("Using image2image")
-            print("Image2Image: Max width:", image_resize["width"])
-            print("Image2Image: Max height:", image_resize["height"])
-            print("Image2Image: Denoise strength:", sampler["denoise"])
+            print(f"Image2Image: Max width: {image_resize['width']}")
+            print(f"Image2Image: Max height: {image_resize['height']}")
+            print(f"Image2Image: Denoise strength: {sampler['denoise']}")
         print("==============================")
 
     def predict(
@@ -334,6 +334,9 @@ class Predictor(BasePredictor):
                 self.comfyUI.reset_execution_cache()
         except Exception as e:
             print(f"Failed to reset execution cache: {e}")
+
+        if controlnet_image_filename:
+            self.comfyUI.handle_weights(workflow)
 
         self.comfyUI.run_workflow(workflow)
 
