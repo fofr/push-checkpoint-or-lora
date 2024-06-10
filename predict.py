@@ -26,6 +26,7 @@ api_json_file = "workflow_api.json"
 class Predictor(BasePredictor):
     def setup(self, weights: str):
         self.comfyUI = ComfyUI("127.0.0.1:8188")
+        self.has_weights = False
 
         # Weights is a tar containing the workflow
         if not weights:
@@ -35,6 +36,7 @@ class Predictor(BasePredictor):
                 "a URL to a tarball containing the workflow file."
             )
         else:
+            self.has_weights = True
             self.comfyUI.weights_downloader.download("weights.tar", weights, "")
 
         if os.path.exists("checkpoint.safetensors"):
@@ -117,6 +119,19 @@ class Predictor(BasePredictor):
             del workflow["13"]
             del workflow["14"]
             del workflow["16"]
+
+        # Only so that predict works on the base model
+        if not self.has_weights:
+            print("No weights found. Using defaults.")
+            # Remove lora loading from workflow
+            del workflow["10"]
+
+            # Connect sampler to checkpoint loader
+            sampler["model"] = ["4", 0]
+
+            # Get CLIP from checkpoint loader
+            workflow["6"]["inputs"]["clip"] = ["4", 1]
+            workflow["7"]["inputs"]["clip"] = ["4", 1]
 
         if "10" in workflow:
             lora_loader = workflow["10"]["inputs"]
