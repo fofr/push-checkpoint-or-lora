@@ -10,8 +10,6 @@ from cog_model_helpers import seed as seed_helper
 from comfyui_enums import (
     SAMPLERS,
     SCHEDULERS,
-    CONTROLNET_PREPROCESSORS,
-    CONTROLNET_MODELS,
 )
 from safety_checker import SafetyChecker
 
@@ -66,7 +64,6 @@ class Predictor(BasePredictor):
 
     def update_workflow(self, workflow, **kwargs):
         is_img2img = kwargs["image_filename"] is not None
-        is_controlnet = kwargs["controlnet_image_filename"] is not None
 
         positive_prompt = workflow["6"]["inputs"]
         positive_prompt["text"] = kwargs["prompt"]
@@ -120,39 +117,6 @@ class Predictor(BasePredictor):
             del workflow["14"]
             del workflow["16"]
 
-        if is_controlnet:
-            preprocessor = workflow["17"]["inputs"]
-            preprocessor["preprocessor"] = kwargs["controlnet_preprocessor"]
-            load_controlnet_image = workflow["18"]["inputs"]
-            load_controlnet_image["image"] = kwargs["controlnet_image_filename"]
-            controlnet = workflow["19"]["inputs"]
-            controlnet["control_net_name"] = kwargs["controlnet_model"]
-            apply_controlnet = workflow["22"]["inputs"]
-            apply_controlnet["strength"] = kwargs["controlnet_strength"]
-            apply_controlnet["start_percent"] = kwargs["controlnet_start"]
-            apply_controlnet["end_percent"] = kwargs["controlnet_end"]
-
-            if not kwargs["controlnet_return_preprocessor_image"]:
-                del workflow["24"]
-
-        else:
-            sampler["positive"] = ["6", 0]
-            sampler["negative"] = ["7", 0]
-
-            """
-            Delete:
-            - load image
-            - preprocessor
-            - load controlnet
-            - apply controlnet
-            - save controlnet
-            """
-            del workflow["17"]
-            del workflow["18"]
-            del workflow["19"]
-            del workflow["22"]
-            del workflow["24"]
-
         if "10" in workflow:
             lora_loader = workflow["10"]["inputs"]
             lora_loader["strength_model"] = kwargs["lora_strength"]
@@ -168,13 +132,6 @@ class Predictor(BasePredictor):
         else:
             print("LORA: No lora. Lora strength has no effect")
 
-        if is_controlnet:
-            print("Using controlnet")
-            print(f"Controlnet: Model: {controlnet['control_net_name']}")
-            print(f"Controlnet: Preprocessor: {preprocessor['preprocessor']}")
-            print(f"Controlnet: Strength: {apply_controlnet['strength']}")
-            print(f"Controlnet: Start: {apply_controlnet['start_percent']}")
-            print(f"Controlnet: End: {apply_controlnet['end_percent']}")
         if is_img2img:
             print("Using image2image")
             print(f"Image2Image: Max width: {image_resize['width']}")
@@ -240,42 +197,6 @@ class Predictor(BasePredictor):
             le=20,
             description="Advanced. Leave empty to use recommended CFG (classifier free guidance). This changes how much the prompt influences the output. Set it only if you want to customise.",
         ),
-        controlnet_image: Path = Input(
-            default=None,
-            description="Advanced. The image to use with a controlnet. Leave empty to use no controlnet.",
-        ),
-        controlnet_model: str = Input(
-            default="None",
-            choices=["None"] + CONTROLNET_MODELS,
-            description="Advanced. Change the model used for the controlnet. Make sure it matches the checkpoint type (eg SD15 or SDXL) and pick an appropriate controlnet preprocessor to go with it.",
-        ),
-        controlnet_preprocessor: str = Input(
-            default="None",
-            choices=["None"] + CONTROLNET_PREPROCESSORS,
-            description="Advanced. Change the preprocessor used for the controlnet. Make sure it matches the controlnet model you're using.",
-        ),
-        controlnet_return_preprocessor_image: bool = Input(
-            default=False,
-            description="Advanced. Return the processed image from the controlnet preprocessor. Useful for debugging.",
-        ),
-        controlnet_strength: float = Input(
-            default=1.0,
-            ge=0,
-            le=3.0,
-            description="Advanced. Strength of the controlnet. Default is 1.0.",
-        ),
-        controlnet_start: float = Input(
-            default=0.0,
-            ge=0,
-            le=1.0,
-            description="Advanced. When to begin applying the controlnet.",
-        ),
-        controlnet_end: float = Input(
-            default=1.0,
-            ge=0,
-            le=1.0,
-            description="Advanced. When to stop applying the controlnet.",
-        ),
     ) -> List[Path]:
         """Run a single prediction on the model"""
         self.comfyUI.cleanup(ALL_DIRECTORIES)
@@ -293,16 +214,6 @@ class Predictor(BasePredictor):
         else:
             image_filename = None
 
-        if controlnet_image:
-            if controlnet_model == "None":
-                raise ValueError("Controlnet model must be set")
-
-            file_extension = os.path.splitext(controlnet_image)[1].lower()
-            controlnet_image_filename = f"controlnet{file_extension}"
-            self.handle_input_file(controlnet_image, controlnet_image_filename)
-        else:
-            controlnet_image_filename = None
-
         self.update_workflow(
             workflow,
             prompt=prompt,
@@ -318,13 +229,6 @@ class Predictor(BasePredictor):
             scheduler=scheduler,
             steps=steps,
             cfg=cfg,
-            controlnet_image_filename=controlnet_image_filename,
-            controlnet_preprocessor=controlnet_preprocessor,
-            controlnet_model=controlnet_model,
-            controlnet_strength=controlnet_strength,
-            controlnet_start=controlnet_start,
-            controlnet_end=controlnet_end,
-            controlnet_return_preprocessor_image=controlnet_return_preprocessor_image,
         )
 
         self.comfyUI.connect()
@@ -334,9 +238,6 @@ class Predictor(BasePredictor):
                 self.comfyUI.reset_execution_cache()
         except Exception as e:
             print(f"Failed to reset execution cache: {e}")
-
-        if controlnet_image_filename:
-            self.comfyUI.handle_weights(workflow)
 
         self.comfyUI.run_workflow(workflow)
 

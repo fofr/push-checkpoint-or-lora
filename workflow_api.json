@@ -12,12 +12,12 @@
         0
       ],
       "positive": [
-        "22",
+        "6",
         0
       ],
       "negative": [
-        "22",
-        1
+        "7",
+        0
       ],
       "latent_image": [
         "16",
@@ -178,79 +178,6 @@
     "class_type": "RepeatLatentBatch",
     "_meta": {
       "title": "Repeat Latent Batch"
-    }
-  },
-  "17": {
-    "inputs": {
-      "preprocessor": "",
-      "resolution": 1024,
-      "image": [
-        "18",
-        0
-      ]
-    },
-    "class_type": "AIO_Preprocessor",
-    "_meta": {
-      "title": "AIO Aux Preprocessor"
-    }
-  },
-  "18": {
-    "inputs": {
-      "image": "controlnet.png",
-      "upload": "image"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Image"
-    }
-  },
-  "19": {
-    "inputs": {
-      "control_net_name": ""
-    },
-    "class_type": "ControlNetLoader",
-    "_meta": {
-      "title": "Load ControlNet Model"
-    }
-  },
-  "22": {
-    "inputs": {
-      "strength": 1,
-      "start_percent": 0,
-      "end_percent": 1,
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "control_net": [
-        "19",
-        0
-      ],
-      "image": [
-        "17",
-        0
-      ]
-    },
-    "class_type": "ControlNetApplyAdvanced",
-    "_meta": {
-      "title": "Apply ControlNet (Advanced)"
-    }
-  },
-  "24": {
-    "inputs": {
-      "filename_prefix": "R8_ControlNet_",
-      "images": [
-        "17",
-        0
-      ]
-    },
-    "class_type": "SaveImage",
-    "_meta": {
-      "title": "Save Image"
     }
   }
 }

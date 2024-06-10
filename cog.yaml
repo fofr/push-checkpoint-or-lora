@@ -1,8 +1,6 @@
 build:
   gpu: true
   cuda: "12.1"
-  system_packages:
-    - ffmpeg
   python_version: "3.10.6"
   python_packages:
     - torch
@@ -26,28 +24,7 @@ build:
     # fix for pydantic issues in cog
     # https://github.com/replicate/cog/issues/1623
     - albumentations==1.4.3
-
-    # comfyui_controlnet_aux
-    # https://github.com/Fannovel16/comfyui_controlnet_aux/blob/main/requirements.txt
-    - importlib_metadata
-    - opencv-python-headless>=4.0.1.24
-    - filelock
-    - numpy
-    - pyyaml
-    - scikit-image
-    - python-dateutil
-    - mediapipe
-    - svglib
-    - fvcore
-    - yapf
-    - omegaconf
-    - ftfy
-    - addict
-    - yacs
-    - trimesh[easy]
-    - scikit-learn
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.8.1/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
-    - pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 predict: "predict.py:Predictor"
 train: "train.py:train"
