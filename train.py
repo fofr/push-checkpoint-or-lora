@@ -30,7 +30,8 @@ class TrainingOutput(BaseModel):
 
 def train(
     checkpoint: str = Input(
-        description="A checkpoint filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Required."
+        description="A checkpoint filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL.",
+        default="sd_xl_base_1.0.safetensors",
     ),
     lora: str = Input(
         description="Optional: A lora filename that is in https://github.com/fofr/cog-comfyui/blob/main/weights.json. Or a HuggingFace or CivitAI download URL. Optional.",
@@ -80,9 +81,7 @@ def train(
 
     if checkpoint:
         if checkpoint.startswith("https://"):
-            checkpoint = download_file(
-                checkpoint, "checkpoint.safetensors"
-            )
+            checkpoint = download_file(checkpoint, "checkpoint.safetensors")
             checkpoint = "checkpoint.safetensors"
         else:
             weights_download.check_weight_is_available(checkpoint)
