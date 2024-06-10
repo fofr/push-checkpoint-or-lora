@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "repo": "https://github.com/cubiq/ComfyUI_essentials",
+    "commit": "94b7450"
+  },
+  {
+    "repo": "https://github.com/Fannovel16/comfyui_controlnet_aux",
+    "commit": "8e51eb3"
+  }
+]
