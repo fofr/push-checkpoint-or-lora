@@ -32,7 +32,7 @@ SCHEDULERS = [
     "ddim_uniform",
 ]
 
-CONTORLNET_PREPROCESSORS = [
+CONTROLNET_PREPROCESSORS = [
     # Common
     "CannyEdgePreprocessor",
     "AnyLineArtPreprocessor_aux",

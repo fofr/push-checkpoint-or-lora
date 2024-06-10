@@ -244,6 +244,11 @@ class Predictor(BasePredictor):
             default=None,
             description="Advanced. The image to use with a controlnet. Leave empty to use no controlnet.",
         ),
+        controlnet_model: str = Input(
+            default="None",
+            choices=["None"] + CONTROLNET_MODELS,
+            description="Advanced. Change the model used for the controlnet. Make sure it matches the checkpoint type (eg SD15 or SDXL) and pick an appropriate controlnet preprocessor to go with it.",
+        ),
         controlnet_preprocessor: str = Input(
             default="None",
             choices=["None"] + CONTROLNET_PREPROCESSORS,
@@ -252,11 +257,6 @@ class Predictor(BasePredictor):
         controlnet_return_preprocessor_image: bool = Input(
             default=False,
             description="Advanced. Return the processed image from the controlnet preprocessor. Useful for debugging.",
-        ),
-        controlnet_model: str = Input(
-            default="None",
-            choices=["None"] + CONTROLNET_MODELS,
-            description="Advanced. Change the model used for the controlnet. Make sure it matches the checkpoint type (eg SD15 or SDXL) and pick an appropriate controlnet preprocessor to go with it.",
         ),
         controlnet_strength: float = Input(
             default=1.0,
@@ -294,6 +294,9 @@ class Predictor(BasePredictor):
             image_filename = None
 
         if controlnet_image:
+            if controlnet_model == "None":
+                raise ValueError("Controlnet model must be set")
+
             file_extension = os.path.splitext(controlnet_image)[1].lower()
             controlnet_image_filename = f"controlnet{file_extension}"
             self.handle_input_file(controlnet_image, controlnet_image_filename)
